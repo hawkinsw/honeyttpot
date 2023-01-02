@@ -53,13 +53,14 @@ func (of *optionalFlag) String() string {
 	return of.Value
 }
 
-func declareCustomFlag(v ...any) any {
-	paramValues := make([]reflect.Value, 0)
+func declareCustomFlag[FlagType flag.Value](f FlagType, v ...any) FlagType {
+	paramValues := make([]reflect.Value, 1)
+	paramValues[0] = reflect.ValueOf(f)
 	for _, v := range v {
 		paramValues = append(paramValues, reflect.ValueOf(v))
 	}
 	reflect.ValueOf(flag.Var).Call(paramValues)
-	return nil
+	return f
 }
 
 var (
@@ -67,8 +68,10 @@ var (
 	key_filename_flag  = flag.String("key", "key.pem", "Filename of the key for the HTTPS certificate.")
 	no_ssl_flag        = flag.Bool("no-ssl", false, "Disable ssl (use HTTP 1.1)")
 	listen_addr_flag   = flag.String("listen-addr", "0.0.0.0", "Address on which to listen for connections.")
-	listen_port_flag   = optionalFlag{Value: "443"}
-	_                  = declareCustomFlag(&listen_port_flag, "listen-port", "Port on which to listen for connections (default to 80 for http and 443 for https).")
+	listen_port_flag   = declareCustomFlag(&optionalFlag{Value: "443"}, "listen-port", "Port on which to listen for connections (default to 80 for http and 443 for https).")
+	post_log_file      = flag.String("post-log", "post.log", "Path of the file to log POST requests.")
+	get_log_file       = flag.String("get-log", "get.log", "Path of the file to log GET requests.")
+	data_file          = "data/tale.txt"
 )
 
 func main() {
@@ -79,19 +82,19 @@ func main() {
 	cert_file := "cert.pem"
 	key_file := "key.pem"
 
-	contents_file, contents_error := os.Open("data/tale.txt")
+	contents_file, contents_error := os.Open(data_file)
 	if contents_error != nil {
-		fmt.Fprintf(os.Stderr, "Could not open the contents file: %v\n", contents_error)
+		fmt.Fprintf(os.Stderr, "Could not open the contents file (%s): %v\n", data_file, contents_error)
 		os.Exit(-1)
 	}
-	post_file, post_error := os.OpenFile("data/post.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	post_file, post_error := os.OpenFile(*post_log_file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	if post_error != nil {
-		fmt.Fprintf(os.Stderr, "Could not open the post file: %v\n", post_error)
+		fmt.Fprintf(os.Stderr, "Could not open the post file (%s): %v\n", *post_log_file, post_error)
 		os.Exit(-1)
 	}
-	get_file, get_error := os.OpenFile("data/get.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	get_file, get_error := os.OpenFile(*get_log_file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	if get_error != nil {
-		fmt.Fprintf(os.Stderr, "Could not open the get file: %v\n", get_error)
+		fmt.Fprintf(os.Stderr, "Could not open the get file (%s): %v\n", *get_log_file, get_error)
 		os.Exit(-1)
 	}
 
