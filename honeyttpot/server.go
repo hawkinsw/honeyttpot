@@ -36,6 +36,6 @@ func (ngx *Nginx) HandleError(*http.Request, http.ResponseWriter) {
 }
 
 func (ngx *Nginx) HandleSuccess(request *http.Request, response_writer http.ResponseWriter) {
-	response_writer.Header().Add("last-modified", time.Now().Format("Mon, 2 Jan 2006 15:04:05 MST"))
+	response_writer.Header().Add("Last-modified", time.Now().Format("Mon, 2 Jan 2006 15:04:05 MST"))
 	response_writer.Write([]byte(ngx.output))
 }

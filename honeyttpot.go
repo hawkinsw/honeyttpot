@@ -26,15 +26,13 @@ func generate_honeyttpot_handler(web_server honeyttpot.Server, log_get io.Writer
 			} else {
 				bad_buffer = bad_buffer[:actual_length]
 			}
-			fmt.Printf("len(bad_buffer): %d\n", len(bad_buffer))
-			fmt.Printf("bad_buffer: %v\n", bad_buffer)
-			log_post.Write([]byte(fmt.Sprintf("%v:---------------------------------------------------", req)))
+			log_post.Write([]byte(fmt.Sprintf("%v:", req)))
 			log_post.Write(bad_buffer)
-			log_post.Write([]byte("------------------------------------------------------------------\n"))
+			log_post.Write([]byte("\n"))
 		} else {
 			log_get.Write([]byte(fmt.Sprintf("Request: %v\n", req)))
 		}
-		resw.Header().Add("server", web_server.Name())
+		resw.Header().Add("Server", web_server.Name())
 		web_server.HandleSuccess(req, resw)
 	}
 }
@@ -79,9 +77,6 @@ func main() {
 
 	server_context, server_context_cancel := context.WithCancel(context.Background())
 
-	cert_file := "cert.pem"
-	key_file := "key.pem"
-
 	contents_file, contents_error := os.Open(data_file)
 	if contents_error != nil {
 		fmt.Fprintf(os.Stderr, "Could not open the contents file (%s): %v\n", data_file, contents_error)
@@ -114,7 +109,7 @@ func main() {
 		for {
 			select {
 			case <-signal_channel:
-				fmt.Printf("\nUser-requested server shutdown beginning ...\n")
+				fmt.Fprintf(os.Stderr, "\nUser-requested server shutdown beginning ...\n")
 				if err := http_server.Shutdown(server_context); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: Could not Shutdown() the server: %v\n", err)
 				}
@@ -147,13 +142,13 @@ func main() {
 				http_server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 				err = http_server.ListenAndServe()
 			} else {
-				err = http_server.ListenAndServeTLS(cert_file, key_file)
+				err = http_server.ListenAndServeTLS(*cert_filename_flag, *key_filename_flag)
 			}
 			if err != nil {
 				if err != http.ErrServerClosed {
 					fmt.Fprintf(os.Stderr, "Could not start the HTTPS webserver: %v\n", err)
 				} else {
-					fmt.Printf("Nicely shutting down the webserver.\n")
+					fmt.Fprintf(os.Stderr, "Nicely shutting down the webserver.\n")
 				}
 			}
 		}
@@ -165,5 +160,8 @@ func main() {
 	get_file.Close()
 	post_file.Close()
 
-	fmt.Printf("Server done!\n")
+	fmt.Fprintf(os.Stderr, "Server done!\n")
+
+	os.Stderr.Sync()
+	os.Stdout.Sync()
 }
